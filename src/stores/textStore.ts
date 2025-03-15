@@ -32,7 +32,7 @@ function splitIntoSyllables(word: string): string[] {
     'zahrady': ['za', 'hra', 'dy'],
     'mrkev': ['mr', 'kev'],
     'rostlinám': ['rost', 'li', 'nám'],
-    'odlákat': ['od', 'lá', 'kát'],
+    'odlákat': ['od', 'lá', 'kat'],
   };
 
   // Check if the word is a special case

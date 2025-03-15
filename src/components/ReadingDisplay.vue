@@ -7,6 +7,36 @@ const activeSegment = ref<number | null>(null);
 const activeWord = ref<number | null>(null);
 const activeSyllable = ref<number | null>(null);
 
+// Funkce pro úpravu textu pro správné čtení
+function prepareTextForSpeech(text: string): string {
+  // Seznam problematických slabik a jejich úprav
+  const fixMap: Record<string, string> = {
+    'ml': ' ml', // přidání zero-width space mezi znaky
+    'me': ' mee',
+    'z': ' zz',
+    'km': 'k\u200Bm',
+    'kg': 'k\u200Bg',
+    'há': 'háá',
+    'rá': 'ráá',
+    'tá': 'táá',
+    'dá': 'dáá',
+    'ná': 'náá',
+    'bá': 'báá',
+    'vá': 'váá',
+    'di.': 'ďi',
+    'oči': ' oči',
+    'i': ' i ',
+    // Přidejte další problematické případy podle potřeby
+  };
+  
+  // Kontrola, zda celý text odpovídá některé problematické slabice
+  if (fixMap[text.toLowerCase()]) {
+    return fixMap[text.toLowerCase()];
+  }
+  
+  return text;
+}
+
 function speak(text: string, index: number, wordIndex: number | null = null, syllableIndex: number | null = null) {
   if (!('speechSynthesis' in window)) {
     console.error('Text-to-speech není podporován');
@@ -17,7 +47,11 @@ function speak(text: string, index: number, wordIndex: number | null = null, syl
   activeWord.value = wordIndex;
   activeSyllable.value = syllableIndex;
   
-  const utterance = new SpeechSynthesisUtterance(text);
+  // Upravit text pro správné čtení
+  const preparedText = prepareTextForSpeech(text);
+  
+  const utterance = new SpeechSynthesisUtterance(preparedText);
+  utterance.lang = 'cs-CZ'; // Nastavení jazyka na češtinu
   utterance.rate = textStore.voiceSettings.rate;
   utterance.pitch = textStore.voiceSettings.pitch;
   if (textStore.voiceSettings.voice) {
