@@ -13,3 +13,24 @@ body {
   min-width: 320px;
   min-height: 100vh;
 }
+
+.container {
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .text-4xl {
+    font-size: 2rem;
+  }
+  .px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .py-8 {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+  .mb-8 {
+    margin-bottom: 2rem;
+  }
+}
