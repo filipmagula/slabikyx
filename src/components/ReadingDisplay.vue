@@ -6,6 +6,7 @@ const textStore = useTextStore();
 const activeSegment = ref<number | null>(null);
 const activeWord = ref<number | null>(null);
 const activeSyllable = ref<number | null>(null);
+const isSpeaking = ref(false);
 
 // Funkce pro úpravu textu pro správné čtení
 function prepareTextForSpeech(text: string): string {
@@ -14,8 +15,6 @@ function prepareTextForSpeech(text: string): string {
     'ml': ' ml', // přidání zero-width space mezi znaky
     'me': ' mee',
     'z': ' zz',
-    'km': 'k\u200Bm',
-    'kg': 'k\u200Bg',
     'há': 'háá',
     'rá': 'ráá',
     'tá': 'táá',
@@ -37,15 +36,30 @@ function prepareTextForSpeech(text: string): string {
   return text;
 }
 
+function stopSpeaking() {
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+    isSpeaking.value = false;
+    activeSegment.value = null;
+    activeWord.value = null;
+    activeSyllable.value = null;
+  }
+}
+
 function speak(text: string, index: number, wordIndex: number | null = null, syllableIndex: number | null = null) {
   if (!('speechSynthesis' in window)) {
     console.error('Text-to-speech není podporován');
     return;
   }
 
+  // Zastavit aktuálně probíhající řeč
+  stopSpeaking();
+  
+  // Nastavit aktivní prvky
   activeSegment.value = index;
   activeWord.value = wordIndex;
   activeSyllable.value = syllableIndex;
+  isSpeaking.value = true;
   
   // Upravit text pro správné čtení
   const preparedText = prepareTextForSpeech(text);
@@ -59,6 +73,14 @@ function speak(text: string, index: number, wordIndex: number | null = null, syl
   }
 
   utterance.onend = () => {
+    isSpeaking.value = false;
+    activeSegment.value = null;
+    activeWord.value = null;
+    activeSyllable.value = null;
+  };
+
+  utterance.onerror = () => {
+    isSpeaking.value = false;
     activeSegment.value = null;
     activeWord.value = null;
     activeSyllable.value = null;
