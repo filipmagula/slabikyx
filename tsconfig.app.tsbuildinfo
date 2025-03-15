@@ -1,1 +1,1 @@
-{"root":["./src/main.ts","./src/vite-env.d.ts","./src/stores/textstore.ts","./src/types/index.ts","./src/app.vue","./src/components/helloworld.vue","./src/components/readingdisplay.vue","./src/components/readingmodeselector.vue","./src/components/textinput.vue"],"errors":true,"version":"5.8.2"}
+{"root":["./src/main.ts","./src/vite-env.d.ts","./src/stores/textstore.ts","./src/types/index.ts","./src/app.vue","./src/components/helloworld.vue","./src/components/readingdisplay.vue","./src/components/readingmodeselector.vue","./src/components/textinput.vue"],"version":"5.8.2"}
