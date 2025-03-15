@@ -146,7 +146,7 @@ export const useTextStore = defineStore('text', () => {
     // Split into sentences, preserving punctuation
     const sentences = originalText.value
       .split(/([.!?]+\s*)/)
-      .reduce((acc: string[], part, i, arr) => {
+      .reduce((acc: string[], part, i) => {
         if (part) {
           // If this is punctuation and not the last element, combine with previous part
           if (part.match(/[.!?]+\s*/) && i > 0) {
