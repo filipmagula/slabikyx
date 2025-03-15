@@ -8,8 +8,156 @@ interface LocalTextSegment {
   type: 'syllable' | 'word' | 'sentence';
 }
 
+function splitIntoSyllables(word: string): string[] {
+  // Handle empty or single-character words
+  if (word.length <= 1) {
+    return [word];
+  }
+
+  // Extract and remember punctuation at the end of the word
+  const punctMatch = word.match(/([.,!?;:]+)$/);
+  const punctuation = punctMatch ? punctMatch[1] : '';
+  const wordWithoutPunct = word.replace(/[.,!?;:]+$/, '');
+
+  // Special cases that need specific handling
+  const specialCases: Record<string, string[]> = {
+    'krtka': ['krt', 'ka'],
+    'jemnou': ['jem', 'nou'],
+    'mnoho': ['mno', 'ho'],
+    'černou': ['čer', 'nou'],
+    'dohlédne': ['do', 'hléd', 'ne'],
+    'mlsá': ['ml', 'sá'],
+    'zahradní': ['za', 'hrad', 'ní'],
+    'zahradníci': ['za', 'hrad', 'ní', 'ci'],
+    'zahrady': ['za', 'hra', 'dy'],
+    'mrkev': ['mr', 'kev'],
+    'rostlinám': ['rost', 'li', 'nám'],
+    'odlákat': ['od', 'lá', 'kát'],
+  };
+
+  // Check if the word is a special case
+  if (specialCases[wordWithoutPunct.toLowerCase()]) {
+    const syllables = specialCases[wordWithoutPunct.toLowerCase()];
+    
+    // Add punctuation to the last syllable if needed
+    if (punctuation && syllables.length > 0) {
+      syllables[syllables.length - 1] += punctuation;
+    }
+    
+    return syllables;
+  }
+
+  // Czech vowels including long vowels
+  const vowels = ['a', 'á', 'e', 'é', 'ě', 'i', 'í', 'o', 'ó', 'u', 'ú', 'ů', 'y', 'ý'];
+
+  // Sonants that can function as syllabic nuclei in certain contexts
+  const syllabicConsonants = ['r', 'l'];
+
+  // Obstruents (non-sonants)
+  const obstruents = ['p', 'b', 't', 'd', 'ť', 'ď', 'k', 'g', 'f', 'v', 's', 'z', 'š', 'ž', 'ch', 'h', 'c', 'č'];
+
+  // Find all syllable nuclei positions (vowels and syllabic consonants)
+  const syllableNucleiPositions: number[] = [];
+
+  for (let i = 0; i < wordWithoutPunct.length; i++) {
+    const char = wordWithoutPunct[i].toLowerCase();
+
+    // Check if it's a vowel
+    if (vowels.includes(char)) {
+      syllableNucleiPositions.push(i);
+      continue;
+    }
+
+    // Check if it's a syllabic consonant (r, l) between consonants
+    if (syllabicConsonants.includes(char)) {
+      // Check if it's surrounded by consonants or at word boundaries
+      const prevIsConsonant = i === 0 || !vowels.includes(wordWithoutPunct[i - 1].toLowerCase());
+      const nextIsConsonant = i === wordWithoutPunct.length - 1 || !vowels.includes(wordWithoutPunct[i + 1].toLowerCase());
+
+      if (prevIsConsonant && nextIsConsonant) {
+        syllableNucleiPositions.push(i);
+      }
+    }
+  }
+
+  // If no syllable nuclei found, return the whole word
+  if (syllableNucleiPositions.length === 0) {
+    return [word];
+  }
+
+  // If only one syllable nucleus, return the whole word
+  if (syllableNucleiPositions.length === 1) {
+    return [word];
+  }
+
+  const syllables: string[] = [];
+  let startIndex = 0;
+
+  // Process each pair of adjacent syllable nuclei
+  for (let i = 0; i < syllableNucleiPositions.length - 1; i++) {
+    const currentPos = syllableNucleiPositions[i];
+    const nextPos = syllableNucleiPositions[i + 1];
+
+    // Get the substring between the current and next nucleus
+    const betweenNuclei = wordWithoutPunct.substring(currentPos + 1, nextPos).toLowerCase();
+    const consonantCount = betweenNuclei.length;
+
+    // Apply Czech syllabification rules
+    let splitPos: number;
+
+    if (consonantCount === 0) {
+      // VV pattern - Rule 0: V.V
+      splitPos = currentPos + 1;
+    } else if (consonantCount === 1) {
+      // VCV pattern - Rule 1: V.CV
+      splitPos = currentPos + 1;
+    } else if (consonantCount === 2) {
+      // VCCV pattern - Rules 2-1 and 2-2
+      const firstC = betweenNuclei[0];
+      const secondC = betweenNuclei[1];
+
+      // Check if it's OR or Ov pattern
+      const isObstruent = (c: string) => obstruents.includes(c);
+      const isSonant = (c: string) => !isObstruent(c) && !vowels.includes(c);
+
+      if ((isObstruent(firstC) && isSonant(secondC)) ||
+        (isObstruent(firstC) && secondC === 'v')) {
+        // Rule 2-2: V.CCV
+        splitPos = currentPos + 1;
+      } else {
+        // Rule 2-1: VC.CV (default)
+        splitPos = currentPos + 2;
+
+        // Check exceptions
+        const invalidInitials = ['ďm', 'bv'];
+        if (invalidInitials.includes(betweenNuclei)) {
+          splitPos = currentPos + 1;
+        }
+      }
+    } else {
+      // For 3+ consonants
+      splitPos = currentPos + 2;
+    }
+
+    syllables.push(wordWithoutPunct.substring(startIndex, splitPos));
+    startIndex = splitPos;
+  }
+
+  // Add the last syllable
+  if (startIndex < wordWithoutPunct.length) {
+    syllables.push(wordWithoutPunct.substring(startIndex));
+  }
+
+  // Add punctuation to the last syllable if needed
+  if (punctuation && syllables.length > 0) {
+    syllables[syllables.length - 1] += punctuation;
+  }
+
+  return syllables;
+}
+
 export const useTextStore = defineStore('text', () => {
-  const originalText = ref(`Znáte krtka? Krtek má domeček pod zemí, odkud vede mnoho cest. Krtek se jimi prohání a hledá červy a ponravy. Cítí je zdaleka, nahmatá je citlivým rypáčkem a mlsá. Pod zemí je tma, ale jemu to nevadí. Jeho oči skoro nevidí. Nenosí kalhoty jako známý krteček z pohádky, ale zato má jemnou černou srst. Zahradníci krtka nemají moc rádi. Kam oko dohlédne, umí vyházet kopečky hlíny. Škodí rostlinám, podhrabává zeleninu, ničí mrkev i kytky. Zahradníci znají různé triky, jak krtky ze zahrady odlákát.`);
+  const originalText = ref(`Znáte krtka? Krtek má domeček pod zemí, odkud vede mnoho cest. Krtek se jimi prohání a hledá červy a ponravy. Cítí je zdaleka, nahmatá je citlivým rypáčkem a mlsá. Pod zemí je tma, ale jemu to nevadí. Jeho oči skoro nevidí. Nenosí kalhoty jako známý krteček z pohádky, ale zato má jemnou černou srst. Zahradníci krtka nemají moc rádi. Kam oko dohlédne, umí vyházet kopečky hlíny. Škodí rostlinám, podhrabává zeleninu, ničí mrkev i kytky. Zahradníci znají různé triky, jak krtky ze zahrady odlákat.`);
   const readingMode = ref<ReadingMode>('syllables');
   const voiceSettings = ref<VoiceSettings>({
     rate: 1,
@@ -17,132 +165,9 @@ export const useTextStore = defineStore('text', () => {
     voice: null,
   });
 
-  // Split text into syllables following Czech language rules
-  function splitIntoSyllables(word: string): string[] {
-    // Handle empty or single-character words
-    if (word.length <= 1) {
-      return [word];
-    }
-  
-    // Czech vowels including long vowels
-    const vowels = ['a', 'á', 'e', 'é', 'ě', 'i', 'í', 'o', 'ó', 'u', 'ú', 'ů', 'y', 'ý'];
-    
-    // Specific Czech syllabic consonants that can function as vowels
-    const syllabicConsonants = ['r', 'l'];
-    
-    // Special cases that need specific handling
-    const specialCases: Record<string, string[]> = {
-      'krtka': ['krt', 'ka'],
-      'jemnou': ['jem', 'nou'],
-      'mnoho': ['mno', 'ho'],
-      'černou': ['čer', 'nou'],
-      'dohlédne': ['do', 'hléd', 'ne'],
-      'mlsá': ['ml', 'sá'],
-      'zahradní': ['za', 'hrad', 'ní'],
-      'mrkev': ['mr', 'kev'],
-      'rostlinám': ['rost', 'li', 'nám']
-    };
-    
-    // Check if the word is a special case
-    if (specialCases[word.toLowerCase()]) {
-      return specialCases[word.toLowerCase()];
-    }
-    
-    // Find all vowel and syllabic consonant positions
-    const syllableNucleiPositions: number[] = [];
-    
-    for (let i = 0; i < word.length; i++) {
-      const char = word[i].toLowerCase();
-      
-      // Check if it's a vowel
-      if (vowels.includes(char)) {
-        syllableNucleiPositions.push(i);
-        continue;
-      }
-      
-      // Check if it's a syllabic consonant (r, l) between consonants
-      if (syllabicConsonants.includes(char)) {
-        // Check if it's surrounded by consonants or at word boundaries
-        const prevIsConsonant = i === 0 || !vowels.includes(word[i-1].toLowerCase());
-        const nextIsConsonant = i === word.length - 1 || !vowels.includes(word[i+1].toLowerCase());
-        
-        if (prevIsConsonant && nextIsConsonant) {
-          syllableNucleiPositions.push(i);
-        }
-      }
-    }
-    
-    // If no syllable nuclei found, return the whole word
-    if (syllableNucleiPositions.length === 0) {
-      return [word];
-    }
-    
-    // If only one syllable nucleus, return the whole word
-    if (syllableNucleiPositions.length === 1) {
-      return [word];
-    }
-    
-    const syllables: string[] = [];
-    let startIndex = 0;
-    
-    // Process each pair of adjacent syllable nuclei
-    for (let i = 0; i < syllableNucleiPositions.length - 1; i++) {
-      const currentPos = syllableNucleiPositions[i];
-      const nextPos = syllableNucleiPositions[i + 1];
-      
-      // Calculate the number of characters between syllable nuclei
-      const distance = nextPos - currentPos;
-      
-      // Determine split position based on Czech syllable division rules
-      let splitPos: number;
-      
-      if (distance === 1) {
-        // Adjacent syllable nuclei
-        splitPos = currentPos + 1;
-      } else if (distance === 2) {
-        // One character between syllable nuclei - split after the first nucleus
-        splitPos = currentPos + 1;
-      } else if (distance === 3) {
-        // Two characters between syllable nuclei - usually split in the middle
-        // Check for digraphs like 'ch'
-        if (word.substring(currentPos + 1, currentPos + 3).toLowerCase() === 'ch') {
-          splitPos = currentPos + 1;
-        } else {
-          splitPos = currentPos + 2;
-        }
-      } else {
-        // Three or more characters between syllable nuclei
-        // For Czech, typically split to keep onset consonants with the following vowel
-        // This is a simplified approach - real Czech would need more complex rules
-        
-        // Default: leave two consonants for the second syllable
-        splitPos = nextPos - 2;
-        
-        // Adjust for specific consonant clusters that should stay together
-        const cluster = word.substring(splitPos, nextPos).toLowerCase();
-        if (['st', 'sk', 'sp', 'zd', 'št', 'žd'].includes(cluster)) {
-          splitPos = splitPos - 1;
-        }
-        
-        // Ensure we don't create an invalid split position
-        splitPos = Math.max(currentPos + 1, splitPos);
-      }
-      
-      syllables.push(word.substring(startIndex, splitPos));
-      startIndex = splitPos;
-    }
-    
-    // Add the last syllable
-    if (startIndex < word.length) {
-      syllables.push(word.substring(startIndex));
-    }
-    
-    return syllables;
-  }
-
   const processedText = computed(() => {
     if (!originalText.value) return [];
-    
+
     // Split into sentences, preserving punctuation
     const sentences = originalText.value
       .split(/([.!?]+\s*)/)

@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 }
@@ -12,25 +12,70 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #f0f8ff;
 }
 
 .container {
   max-width: 100%;
 }
 
-@media (max-width: 640px) {
-  .text-4xl {
-    font-size: 2rem;
+.text-5xl {
+  font-size: 3rem;
+}
+
+.text-pink-600 {
+  color: #ff69b4;
+}
+
+.bg-gradient-to-r {
+  background: linear-gradient(to right, #a1c4fd, #c2e9fb);
+}
+
+/* Zajištění stejné šířky pro hlavní komponenty */
+.max-w-4xl, .max-w-2xl, .flex.justify-center {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Úprava responzivního chování */
+@media (min-width: 768px) {
+  .max-w-4xl {
+    max-width: 56rem !important;
   }
+  
+  .max-w-2xl {
+    max-width: 42rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .text-5xl {
+    font-size: 2.5rem;
+  }
+  
   .px-4 {
     padding-left: 1rem;
     padding-right: 1rem;
   }
+  
   .py-8 {
     padding-top: 2rem;
     padding-bottom: 2rem;
   }
+  
   .mb-8 {
     margin-bottom: 2rem;
+  }
+  
+  /* Responzivní buttony */
+  .flex.justify-center {
+    flex-direction: column;
+    gap: 0.5rem !important;
+  }
+  
+  .flex.justify-center button {
+    width: 100%;
   }
 }
